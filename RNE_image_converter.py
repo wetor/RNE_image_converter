@@ -1,11 +1,11 @@
 # 游戏: 《Robotics;Notes Elite》
-# 平台: PSVita
+# 平台: PSVita/PS3
 # 背景及CG图片转码（bin转png）
 # 作者: wetor (www.wetor.top / wetor.top@gmail.com)
 # 时间: 2020.5.8
 # RNE_image_converter 0.1
 
-# 目前仅支持RGBA格式，256色图像
+# 目前仅支持RGBA格式，256色图像 转成 bin
 
 import os
 import struct
@@ -25,16 +25,22 @@ def bin2png(file, saveDir='.'):
     height, = struct.unpack('<H', fl.read(2))
     pixelFormat, = struct.unpack('<H', fl.read(2))
     unKnow, = struct.unpack('<H', fl.read(2))
-
-    pixelColor = {}
-    for i in range(pixelFormat * 32):
-        color = fl.read(4)
-        pixelColor.update({i: (color[2], color[1], color[0], color[3])})
-
     img = Image.new('RGBA', (width, height))
-    for y in range(height):
-        for x in range(width):
-            img.putpixel((x, y), pixelColor[fl.read(1)[0]])
+    if pixelFormat == 8:
+        pixelColor = {}
+        for i in range(256):
+            color = fl.read(4)
+            pixelColor.update({i: (color[2], color[1], color[0], color[3])})
+
+        for y in range(height):
+            for x in range(width):
+                img.putpixel((x, y), pixelColor[fl.read(1)[0]])
+    elif pixelFormat == 32:
+        for y in range(height):
+            for x in range(width):
+                color = fl.read(4)
+                img.putpixel((x, y), (color[1], color[2], color[3], color[0]))
+
     fl.close()
     img.save(fileDir + '/' + filename + '.png', 'png')
     print("bin2png: '" + file + "' convert png success! Save as '" + fileDir + '/' + filename + '.png' + "'")
@@ -42,7 +48,8 @@ def bin2png(file, saveDir='.'):
 
 def png2bin(file, saveDir='.'):
     img = Image.open(os.path.abspath(file))
-    if len(img.getcolors(256)) is None or img.mode != 'RGBA':
+    print(len(img.getcolors(256*256*256)))
+    if img.getcolors(256) is None or img.mode != 'RGBA':
         print('不是是256色，RGBA格式的图像！')
         return
     width = img.size[0]
@@ -59,7 +66,7 @@ def png2bin(file, saveDir='.'):
     for i in range(256):
         color = img.getcolors()[i][1]
         pixelColor.update({color: struct.pack('<B', i)})
-        fl.write(bytes([color[2], color[1], color[0], color[3]]))
+        fl.write(bytes([color[3], color[1], color[0], color[3]]))
 
     for y in range(height):
         for x in range(width):
@@ -71,12 +78,7 @@ def png2bin(file, saveDir='.'):
 
 
 if __name__ == '__main__':
-    bin2png('./data/bin/1.bin', './data/png')
-    bin2png('./data/bin/2.bin', './data/png')
-    bin2png('./data/bin/3.bin', './data/png')
-    bin2png('./data/bin/4.bin', './data/png')
-    bin2png('./data/bin/5.bin', './data/png')
-    bin2png('./data/bin/6.bin', './data/png')
+    bin2png('./data/bin/ps3.bin', './data/png')
 
-    # png2bin('./data/png/1.png')
+    # png2bin('./data/png/ps3.png')
     # bin2png('./data/png/1.bin', './data/png')
